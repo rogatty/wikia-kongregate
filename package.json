@@ -1,0 +1,13 @@
+{
+  "name": "wikia-kongregate",
+  "version": "0.0.1",
+  "description": "Scraper for kongregate.wikia.com",
+  "main": "run.js",
+  "dependencies": {
+    "request": "2.47.*",
+    "xml2js": "0.4.*"
+  },
+  "devDependencies": {},
+  "author": "Igor Rogatty",
+  "license": "ISC"
+}
