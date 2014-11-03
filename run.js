@@ -20,15 +20,11 @@ function parseData(data) {
 }
 
 function parseGameData(data) {
-	var organizedData,
-		gameDetails;
-
 	if (parseFloat(data.rating) >= 4) {
 		//console.log('Checking if ' + data.title + ' exists on Kongregate Wikia');
 		request('http://kongregate.wikia.com/' + data.title, function (error, response) {
 			if (!error && response.statusCode == 404) {
-				organizedData = organizeGameData(data);
-				getGameDetails(organizedData);
+				getGameDetails(organizeGameData(data));
 			}
 		});
 	}
@@ -64,36 +60,41 @@ function organizeGameData(data) {
 }
 
 function getGameDetails(data) {
+	var jquery = fs.readFileSync("./jquery.js", "utf-8");
+
 	jsdom.env({
 		url: data.url,
-		scripts: ['http://code.jquery.com/jquery.js'],
+		src: [jquery],
 		done: function (errors, window) {
 			var $ = window.jQuery,
-				achievments = [];
+				achievments = [],
+				$achievementsTemplate = $('#accomplishments_tab_pane_template'),
+				$achievementsElement = $($achievementsTemplate.html());
 
-			//TODO this div is in <script id="accomplishments_tab_pane_template" type="text/html"> and has to be parsed separately
-			$('#accomplishment_vtab_set > li').each(function ($el) {
-				var anchor = $el.find('a[href^="#achievments-"]').attr('href'),
-					imgElement = $el.find('.badge_image img'),
-					name = imgElement.attr('title'),
-					image = imgElement.attr('src'),
+			$achievementsElement.find('#accomplishment_vtab_set > li').each(function () {
+				var $el = $(this),
+					anchor = $el.find('a[href^="#achievements-"]').attr('href'),
+					$imgElement = $el.find('.badge_image img'),
+					name = $imgElement.attr('title'),
+					image = $imgElement.attr('src'),
 					level = $el.find('p').last().text(),
-					description = $(anchor).find('.task_desc').text();
+					description = $achievementsElement.find(anchor).find('.task_desc').text();
 
 				achievments.push({
 					name: name,
 					level: level,
 					image: image,
-					game: data.title,
+					//game: data.title,
 					url: '', // TODO ?
-					descrip: description
+					descrip: fixNewLines(description)
 				});
 			});
 
 			console.log(achievments);
+			data.achievements = achievments;
+			createArticle(data);
 		}
 	});
-	//createArticle(data);
 }
 
 function createArticle(data) {
@@ -120,10 +121,11 @@ function createArticle(data) {
 }
 
 function fixNewLines(str) {
-	return htmlEntities.decode(str).split('\n').join('<br>\n');
+	return str ? htmlEntities.decode(str).split('\n').join('<br>\n') : '';
 }
 
 htmlEntities = new HtmlEntities();
 scrape('http://www.kongregate.com/games_for_your_site.xml');
 
 //getGameDetails({url: 'http://www.kongregate.com/games/DJStatika/warlords-call-to-arms'});
+//getGameDetails();
