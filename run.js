@@ -15,7 +15,7 @@ function scrape(url) {
 
 function parseData(data) {
 	parser.parseString(data, function (err, result) {
-		result.gameset.game.slice(0,60).forEach(parseGameData);
+		result.gameset.game.forEach(parseGameData);
 	});
 }
 
@@ -25,6 +25,8 @@ function parseGameData(data) {
 		request('http://kongregate.wikia.com/' + data.title, function (error, response) {
 			if (!error && response.statusCode == 404) {
 				getGameDetails(organizeGameData(data));
+				//var title = data.title[0].split('  ').join(' ').split(' ').join('_');
+				//console.log('http://kongregate.wikia.com/wiki/' + title + '?action=edit');
 			}
 		});
 	}
@@ -90,7 +92,6 @@ function getGameDetails(data) {
 				});
 			});
 
-			console.log(achievments);
 			data.achievements = achievments;
 			createArticle(data);
 		}
@@ -100,11 +101,11 @@ function getGameDetails(data) {
 function createArticle(data) {
 	var articleBuffer = [
 		'{{Game',
-		'|name =[' + data.url + ' ' + data.title + ']',
-		'|image =' + data.screenshot,
-		'|author =[http://www.kongregate.com/accounts/' + data.developerName + ' ' + data.developerName + ']',
-		'|genre =' + data.category,
-		'|pub =' + data.launchDate,
+		'|name = [' + data.url + ' ' + data.title + ']',
+		'|image = ' + data.screenshot,
+		'|author = [http://www.kongregate.com/accounts/' + data.developerName + ' ' + data.developerName + ']',
+		'|genre = ' + data.category,
+		'|pub = ' + data.launchDate,
 		'|iga = ',
 		'|type = ',
 		'|upg = ',
@@ -117,15 +118,38 @@ function createArticle(data) {
 		articleBuffer += '\n==Controls==\n' + fixNewLines(data.instructions);
 	}
 
-	console.log(articleBuffer);
+	if (data.achievements) {
+		articleBuffer += '\n==Badges==';
+		data.achievements.forEach(function (achievement) {
+			articleBuffer = [
+				articleBuffer,
+				'{{KongBadge',
+				'|name = ' + achievement.name,
+				'|level = ' + achievement.level,
+				'|image = ' + achievement.image,
+				'|game = ' + data.title,
+				'|url = ' + achievement.url,
+				'|descrip = ' + achievement.descrip,
+				'}}'
+			].join('\n');
+		});
+	}
+
+	saveToFile(data.title, articleBuffer);
 }
 
 function fixNewLines(str) {
 	return str ? htmlEntities.decode(str).split('\n').join('<br>\n') : '';
 }
 
+function saveToFile(title, article) {
+	var buffer = title + '\n\n' + article + '\n\n=====================\n\n';
+	fs.appendFile('result.txt', buffer, function (err) {
+		if (err) {
+			throw err;
+		}
+	});
+}
+
 htmlEntities = new HtmlEntities();
 scrape('http://www.kongregate.com/games_for_your_site.xml');
-
-//getGameDetails({url: 'http://www.kongregate.com/games/DJStatika/warlords-call-to-arms'});
-//getGameDetails();
